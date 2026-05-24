@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTR 都會票計算器</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
+        h1 { color: #0066cc; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        label { display: block; margin: 15px 0 5px; font-weight: bold; }
+        input, select, button { padding: 10px; margin: 5px 0; width: 100%; max-width: 400px; }
+        button { background: #0066cc; color: white; border: none; cursor: pointer; font-size: 16px; }
+        button:hover { background: #0055aa; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background: #0066cc; color: white; }
+        .result { margin-top: 20px; padding: 15px; background: #e6f0ff; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚇 MTR 都會票計算器</h1>
+        
+        <label>Current Ticket Start Date:</label>
+        <input type="date" id="startDate">
+
+        <label>Remaining Trips on Current Ticket:</label>
+        <input type="number" id="remainingTrips" value="20" min="0">
+
+        <label>Number of Weeks to Plan:</label>
+        <input type="number" id="weeks" value="8" min="1">
+
+        <label>Extra Public Holidays (non-weekend):</label>
+        <input type="number" id="holidays" value="0" min="0">
+
+        <button onclick="calculate()">計算</button>
+
+        <div id="output" class="result"></div>
+    </div>
+
+    <script>
+        function calculate() {
+            const startDate = new Date(document.getElementById('startDate').value);
+            let remaining = parseInt(document.getElementById('remainingTrips').value) || 0;
+            const weeks = parseInt(document.getElementById('weeks').value) || 4;
+            const extraHolidays = parseInt(document.getElementById('holidays').value) || 0;
+
+            if (!startDate) {
+                alert("請輸入開始日期！");
+                return;
+            }
+
+            let html = `<h2>模擬結果 (${weeks} 星期)</h2>`;
+            html += `<p>目前剩餘 Trips: <strong>${remaining}</strong></p>`;
+
+            let currentDate = new Date(startDate);
+            let totalTripsUsed = 0;
+            let buyRecommendation = "";
+
+            for (let w = 0; w < weeks; w++) {
+                let weekTrips = 0;
+                
+                // Weekdays (Mon-Fri): 2 trips/day × 5 = 10 trips
+                weekTrips += 10;
+
+                // Weekend: 2 trips for you + 2 for husband = 4 trips
+                weekTrips += 4;
+
+                // Extra holidays
+                if (w === 0 && extraHolidays > 0) {
+                    weekTrips += extraHolidays * 4; // both use 2 each per holiday
+                }
+
+                totalTripsUsed += weekTrips;
+                remaining -= weekTrips;
+
+                const dateStr = currentDate.toLocaleDateString('zh-HK');
+
+                html += `<p><strong>第 ${w+1} 週 (${dateStr})</strong>: 用 ${weekTrips} trips → 剩餘 ${remaining} trips</p>`;
+
+                if (remaining < 4 && buyRecommendation === "") {
+                    buyRecommendation = `建議在第 ${w+1} 週買下一張票（最好在週末前）`;
+                }
+
+                // Move to next week
+                currentDate.setDate(currentDate.getDate() + 7);
+            }
+
+            html += `<hr><h3>建議</h3>`;
+            if (buyRecommendation) {
+                html += `<p style="color:red; font-weight:bold;">${buyRecommendation}</p>`;
+            } else {
+                html += `<p>目前票仍然足夠 ${weeks} 星期。</p>`;
+            }
+
+            html += `<p>總共會用 ${totalTripsUsed} trips。</p>`;
+
+            document.getElementById('output').innerHTML = html;
+        }
+    </script>
+</body>
+</html>
