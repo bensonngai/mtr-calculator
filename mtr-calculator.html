@@ -7,94 +7,113 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f4f4f4; }
         h1 { color: #0066cc; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
         label { display: block; margin: 15px 0 5px; font-weight: bold; }
-        input, select, button { padding: 10px; margin: 5px 0; width: 100%; max-width: 400px; }
-        button { background: #0066cc; color: white; border: none; cursor: pointer; font-size: 16px; }
+        input { padding: 10px; width: 100%; max-width: 400px; }
+        button { background: #0066cc; color: white; border: none; padding: 12px 20px; font-size: 16px; cursor: pointer; margin-top: 15px; }
         button:hover { background: #0055aa; }
         table { width: 100%; border-collapse: collapse; margin: 20px 0; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         th { background: #0066cc; color: white; }
-        .result { margin-top: 20px; padding: 15px; background: #e6f0ff; border-radius: 8px; }
+        .recommend { background: #e6f0ff; padding: 15px; border-radius: 8px; margin: 20px 0; font-size: 1.1em; }
+        .warning { background: #ffe6e6; padding: 15px; border-radius: 8px; color: #c00; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🚇 MTR 都會票計算器</h1>
         
-        <label>Current Ticket Start Date:</label>
-        <input type="date" id="startDate">
+        <h2>Ticket A (舊票 - 主要給老公週末用)</h2>
+        <label>Expiry Date (到期日):</label>
+        <input type="date" id="ticketAExpiry">
+        
+        <label>Remaining Trips (剩餘次數):</label>
+        <input type="number" id="ticketARemaining" value="15" min="0">
 
-        <label>Remaining Trips on Current Ticket:</label>
-        <input type="number" id="remainingTrips" value="20" min="0">
+        <h2>Ticket B (新票 - 你日常使用)</h2>
+        <label>Expiry Date (到期日):</label>
+        <input type="date" id="ticketBExpiry">
+        
+        <label>Remaining Trips (剩餘次數):</label>
+        <input type="number" id="ticketBRemaining" value="40" min="0">
 
-        <label>Number of Weeks to Plan:</label>
-        <input type="number" id="weeks" value="8" min="1">
+        <button onclick="calculate()">開始計算</button>
 
-        <label>Extra Public Holidays (non-weekend):</label>
-        <input type="number" id="holidays" value="0" min="0">
-
-        <button onclick="calculate()">計算</button>
-
-        <div id="output" class="result"></div>
+        <div id="output"></div>
     </div>
 
     <script>
         function calculate() {
-            const startDate = new Date(document.getElementById('startDate').value);
-            let remaining = parseInt(document.getElementById('remainingTrips').value) || 0;
-            const weeks = parseInt(document.getElementById('weeks').value) || 4;
-            const extraHolidays = parseInt(document.getElementById('holidays').value) || 0;
+            const today = new Date();
+            today.setHours(0,0,0,0);
 
-            if (!startDate) {
-                alert("請輸入開始日期！");
+            const aExpiry = new Date(document.getElementById('ticketAExpiry').value);
+            const bExpiry = new Date(document.getElementById('ticketBExpiry').value);
+            let aRemaining = parseInt(document.getElementById('ticketARemaining').value) || 0;
+            let bRemaining = parseInt(document.getElementById('ticketBRemaining').value) || 0;
+
+            if (!aExpiry || !bExpiry) {
+                alert("請輸入兩張票的到期日期！");
                 return;
             }
 
-            let html = `<h2>模擬結果 (${weeks} 星期)</h2>`;
-            html += `<p>目前剩餘 Trips: <strong>${remaining}</strong></p>`;
+            let html = `<h2>計算結果 (由今天開始)</h2>`;
+            let currentDate = new Date(today);
+            let week = 1;
+            let buyDateRecommendation = null;
+            let wasteWarning = "";
 
-            let currentDate = new Date(startDate);
-            let totalTripsUsed = 0;
-            let buyRecommendation = "";
+            html += `<div class="recommend"><strong>目前情況：</strong><br>
+                     Ticket A 剩餘: ${aRemaining} 次 | 到期: ${aExpiry.toLocaleDateString('zh-HK')}<br>
+                     Ticket B 剩餘: ${bRemaining} 次 | 到期: ${bExpiry.toLocaleDateString('zh-HK')}</div>`;
 
-            for (let w = 0; w < weeks; w++) {
-                let weekTrips = 0;
-                
-                // Weekdays (Mon-Fri): 2 trips/day × 5 = 10 trips
-                weekTrips += 10;
+            while (week <= 8) {
+                let weekTripsA = 0;
+                let weekTripsB = 0;
 
-                // Weekend: 2 trips for you + 2 for husband = 4 trips
-                weekTrips += 4;
+                // Weekdays: You use Ticket B (10 trips)
+                weekTripsB += 10;
 
-                // Extra holidays
-                if (w === 0 && extraHolidays > 0) {
-                    weekTrips += extraHolidays * 4; // both use 2 each per holiday
+                // Weekend: You use B (2), Husband uses A (2)
+                weekTripsB += 2;
+                weekTripsA += 2;
+
+                aRemaining -= weekTripsA;
+                bRemaining -= weekTripsB;
+
+                const dateStr = currentDate.toLocaleDateString('zh-HK', {month:'short', day:'numeric'});
+
+                html += `<p><strong>第 ${week} 週 (${dateStr})：</strong><br>`;
+                html += `Ticket A 用 ${weekTripsA} 次 → 剩 ${Math.max(0, aRemaining)} 次<br>`;
+                html += `Ticket B 用 ${weekTripsB} 次 → 剩 ${Math.max(0, bRemaining)} 次</p>`;
+
+                // Check if we should buy new ticket soon
+                if (aRemaining <= 6 && !buyDateRecommendation) {
+                    buyDateRecommendation = currentDate;
                 }
 
-                totalTripsUsed += weekTrips;
-                remaining -= weekTrips;
-
-                const dateStr = currentDate.toLocaleDateString('zh-HK');
-
-                html += `<p><strong>第 ${w+1} 週 (${dateStr})</strong>: 用 ${weekTrips} trips → 剩餘 ${remaining} trips</p>`;
-
-                if (remaining < 4 && buyRecommendation === "") {
-                    buyRecommendation = `建議在第 ${w+1} 週買下一張票（最好在週末前）`;
+                // Warning if A will expire soon with trips left
+                const daysToAExpiry = Math.ceil((aExpiry - currentDate) / (1000*60*60*24));
+                if (daysToAExpiry < 7 && aRemaining > 5) {
+                    wasteWarning = `⚠️ 注意：Ticket A 將在 ${daysToAExpiry} 日後到期，但仲有 ${aRemaining} 次未用！`;
                 }
 
-                // Move to next week
                 currentDate.setDate(currentDate.getDate() + 7);
+                week++;
             }
 
-            html += `<hr><h3>建議</h3>`;
-            if (buyRecommendation) {
-                html += `<p style="color:red; font-weight:bold;">${buyRecommendation}</p>`;
+            // Final Recommendation
+            html += `<div class="recommend">`;
+            if (buyDateRecommendation) {
+                html += `<strong>✅ 建議：</strong> 你應該在 <strong>${buyDateRecommendation.toLocaleDateString('zh-HK')}</strong> 或之前買下一張新票 (Ticket B)`;
             } else {
-                html += `<p>目前票仍然足夠 ${weeks} 星期。</p>`;
+                html += `<strong>目前兩張票都足夠用一段時間。</strong>`;
             }
+            html += `</div>`;
 
-            html += `<p>總共會用 ${totalTripsUsed} trips。</p>`;
+            if (wasteWarning) {
+                html += `<div class="warning">${wasteWarning}</div>`;
+            }
 
             document.getElementById('output').innerHTML = html;
         }
